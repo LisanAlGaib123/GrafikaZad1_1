@@ -4,6 +4,32 @@ from tkinter import filedialog, messagebox
 import json
 import math
 
+
+def _bresenham_circle(self, canvas, cx, cy, r, color='black'):
+    x = 0
+    y = int(r)
+    d = 3 - 2 * r
+
+    def plot_circle_points(x, y):
+        for px, py in [
+            (cx + x, cy + y), (cx - x, cy + y),
+            (cx + x, cy - y), (cx - x, cy - y),
+            (cx + y, cy + x), (cx - y, cy + x),
+            (cx + y, cy - x), (cx - y, cy - x)
+        ]:
+            canvas.create_rectangle(px, py, px+1, py+1, outline=color, fill=color)
+
+    while y >= x:
+        plot_circle_points(x, y)
+        if d < 0:
+            d += 4 * x + 6
+        else:
+            d += 4 * (x - y) + 10
+            y -= 1
+        x += 1
+
+
+
 class Drawable:
     HANDLE_SIZE = 6
 
@@ -50,8 +76,7 @@ class Line(Drawable):
         self.x1,self.y1,self.x2,self.y2 = x1,y1,x2,y2
 
     def draw(self, canvas):
-        kw = {'fill':self.color, 'width':self.width}
-        canvas.create_line(self.x1,self.y1,self.x2,self.y2, **kw)
+        self._bresenham_line(canvas, self.x1, self.y1, self.x2, self.y2, self.color)
         if self.selected:
             self._draw_handles(canvas)
 
@@ -92,6 +117,26 @@ class Line(Drawable):
     @classmethod
     def from_dict(cls, d):
         return Line(d['x1'],d['y1'],d['x2'],d['y2'], d.get('color','black'), d.get('width',2))
+
+    def _bresenham_line(self, canvas, x1, y1, x2, y2, color='black'):
+        x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+        dx = abs(x2 - x1)
+        dy = abs(y2 - y1)
+        sx = 1 if x1 < x2 else -1
+        sy = 1 if y1 < y2 else -1
+        err = dx - dy
+
+        while True:
+            canvas.create_rectangle(x1, y1, x1 + 1, y1 + 1, outline=color, fill=color)
+            if x1 == x2 and y1 == y2:
+                break
+            e2 = 2 * err
+            if e2 > -dy:
+                err -= dy
+                x1 += sx
+            if e2 < dx:
+                err += dx
+                y1 += sy
 
 class Rect(Drawable):
     def __init__(self, x1, y1, x2, y2, color='black', width=2, fill=''):
@@ -147,11 +192,7 @@ class Circle(Drawable):
         self.fill = fill
 
     def draw(self, canvas):
-        x1,y1,x2,y2 = self.bbox()
-        kw = {'outline':self.color, 'width':self.width}
-        if self.fill:
-            kw['fill'] = self.fill
-        canvas.create_oval(x1,y1,x2,y2, **kw)
+        self._bresenham_circle(canvas, self.cx, self.cy, self.r, self.color)
         if self.selected:
             self._draw_handles(canvas)
 
@@ -186,6 +227,30 @@ class Circle(Drawable):
     @classmethod
     def from_dict(cls, d):
         return Circle(d['cx'], d['cy'], d['r'], d.get('color','black'), d.get('width',2), d.get('fill',''))
+
+    def _bresenham_circle(self, canvas, cx, cy, r, color='black'):
+        x = 0
+        y = int(r)
+        d = 3 - 2 * r
+
+        def plot_circle_points(x, y):
+            for px, py in [
+                (cx + x, cy + y), (cx - x, cy + y),
+                (cx + x, cy - y), (cx - x, cy - y),
+                (cx + y, cy + x), (cx - y, cy + x),
+                (cx + y, cy - x), (cx - y, cy - x)
+            ]:
+                canvas.create_rectangle(px, py, px + 1, py + 1, outline=color, fill=color)
+
+        while y >= x:
+            plot_circle_points(x, y)
+            if d < 0:
+                d += 4 * x + 6
+            else:
+                d += 4 * (x - y) + 10
+                y -= 1
+            x += 1
+
 
 # --- Aplikacja GUI ---
 class App:
